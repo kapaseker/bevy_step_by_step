@@ -1,0 +1,17 @@
+[package]
+name = "bevy_step_by_step"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.15"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+
+
+[[example]]
+name = "ecs_simple"
+path = "examples/ecs/simple.rs"
+doc-scrape-examples = true
