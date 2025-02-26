@@ -15,3 +15,8 @@ opt-level = 3
 name = "ecs_simple"
 path = "examples/ecs/simple.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "window_window"
+path = "examples/window/window.rs"
+doc-scrape-examples = true
