@@ -20,3 +20,8 @@ doc-scrape-examples = true
 name = "window_window"
 path = "examples/window/window.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "system_system"
+path = "examples/system/system.rs"
+doc-scrape-examples = true
