@@ -1,5 +1,7 @@
 //! Displays a single [`Sprite`], created from an image.
 
+mod component;
+
 use std::slice::Windows;
 use bevy::input::common_conditions::{input_just_pressed, input_pressed};
 use bevy::prelude::*;
