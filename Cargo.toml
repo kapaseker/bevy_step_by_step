@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.15"
+bevy_rapier3d = "0.29"
+bevy_panorbit_camera = "0.23"
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -20,6 +22,11 @@ path = "examples/ecs/component.rs"
 doc-scrape-examples = true
 
 [[example]]
+name = "ecs_query"
+path = "examples/ecs/query.rs"
+doc-scrape-examples = true
+
+[[example]]
 name = "window_window"
 path = "examples/window/window.rs"
 doc-scrape-examples = true
@@ -27,4 +34,14 @@ doc-scrape-examples = true
 [[example]]
 name = "system_system"
 path = "examples/system/system.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "physics_start"
+path = "examples/physics/start.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "physics_on_ground"
+path = "examples/physics/on_ground.rs"
 doc-scrape-examples = true
