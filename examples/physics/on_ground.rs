@@ -1,3 +1,4 @@
+use std::cmp::min;
 use bevy::color::palettes::basic::RED;
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
@@ -36,7 +37,7 @@ impl Default for MovementVelocity {
         Self {
             ground: 20.0,
             jump: 10.0,
-            damping: 0.6,
+            damping: 40.0,
         }
     }
 }
@@ -167,25 +168,29 @@ fn move_player(
     mut movement_event_reader: EventReader<Movement>,
     mut players: Query<(&MovementVelocity, &mut KinematicCharacterController, Has<OnGround>, &Gravity)>,
     mut jump_speed: Local<f32>,
+    mut moving_speed: Local<f32>,
+    mut moving_direction: Local<Vec2>,
 ) {
     let delta = time.delta_secs();
     players.iter_mut().for_each(|(acc, mut controller, on_ground, gravity)| {
 
         let y = if on_ground {
-                0.0
-            } else {
-                *jump_speed += gravity.0 * delta;
-                *jump_speed * delta
-            };
+            0.0
+        } else {
+            *jump_speed += gravity.0 * delta;
+            *jump_speed * delta
+        };
 
-            let mut moving_vector = Vec3::ZERO;
-            moving_vector.y = y;
+        let mut moving_vector = Vec3::ZERO;
+        moving_vector.y = y;
+        *moving_speed = (*moving_speed - acc.damping * delta).max(0.0);
+
 
         for x in movement_event_reader.read() {
             match x {
                 Movement::Move(dir) => {
-                    moving_vector.x = dir.x * delta * acc.ground;
-                    moving_vector.z = -dir.y * delta * acc.ground;
+                    *moving_speed = acc.ground;
+                    *moving_direction = dir.clone();
                 }
                 Movement::Jump => {
                     if on_ground {
@@ -199,6 +204,11 @@ fn move_player(
             info!("moving:{}", moving_vector);
             info!("event:{:?}", x);
         }
+
+        info!("moving speed:{}", *moving_speed);
+
+        moving_vector.x =  moving_direction.x * delta * *moving_speed;
+        moving_vector.z = - moving_direction.y * delta * *moving_speed;
 
         controller.translation = Some(moving_vector);
     })
