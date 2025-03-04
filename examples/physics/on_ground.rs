@@ -3,37 +3,38 @@ use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::na::Translation;
 use bevy_rapier3d::prelude::*;
+use std::fmt::Display;
 
 #[derive(Component)]
 struct Ground;
 
 #[derive(Component)]
-#[require(MovementAcceleration)]
+#[require(MovementVelocity)]
 struct Player;
 
 #[derive(Component)]
-struct Gravity(Vec3);
+struct Gravity(f32);
 
 #[derive(Component)]
 struct OnGround;
 
-#[derive(Event)]
+#[derive(Event, Debug)]
 enum Movement {
     Move(Vec2),
     Jump,
 }
 
 #[derive(Component)]
-struct MovementAcceleration {
-    on_ground: f32,
+struct MovementVelocity {
+    ground: f32,
     jump: f32,
     damping: f32,
 }
 
-impl Default for MovementAcceleration {
+impl Default for MovementVelocity {
     fn default() -> Self {
         Self {
-            on_ground: 20.0,
+            ground: 20.0,
             jump: 10.0,
             damping: 0.6,
         }
@@ -102,18 +103,7 @@ fn setup(
             snap_to_ground: None,
             ..default()
         },
-        // Velocity {
-        //     linvel: Vec3::ZERO,
-        //     angvel: Vec3::ZERO,
-        // },
-        // ShapeCaster::new(
-        //     shape_cast.into(),
-        //     Vector::ZERO,
-        //     Quaternion::default(),
-        //     Dir3::NEG_Y,
-        // )
-        // .with_max_distance(0.2),
-        Gravity(Vec3::NEG_Y * 9.81 * 2.0),
+        Gravity(-9.81 * 2.0),
         Player,
     ));
 
@@ -143,12 +133,14 @@ fn keyboard_input(
     let left = keyboard_input.any_pressed([KeyCode::KeyA, KeyCode::ArrowLeft]);
     let right = keyboard_input.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]);
 
-    let horizontal = right as i8 - left as i8;
-    let vertical = up as i8 - down as i8;
-    let direction = Vec2::new(horizontal as f32, vertical as f32).normalize();
+    if up || down || left || right {
+        let horizontal = right as i8 - left as i8;
+        let vertical = up as i8 - down as i8;
+        let direction = Vec2::new(horizontal as f32, vertical as f32).normalize();
 
-    if direction != Vec2::ZERO {
-        movement_event_writer.send(Movement::Move(direction));
+        if direction != Vec2::ZERO {
+            movement_event_writer.send(Movement::Move(direction));
+        }
     }
 
     if keyboard_input.just_pressed(KeyCode::Space) {
@@ -159,24 +151,10 @@ fn keyboard_input(
 /// Updates the [`Grounded`] status for character controllers.
 fn update_grounded(mut commands: Commands,
                    rapier_context: ReadRapierContext,
-                   mut query: Query<(Entity,&Transform), With<Player>>
+                   mut query: Query<(Entity, Option<&KinematicCharacterControllerOutput>), With<Player>>
 ) {
-    for (entity, transform) in &mut query {
-
-        // The character is grounded if the shape caster has a hit with a normal
-        // that isn't too steep.
-        let context = rapier_context.single();
-
-        // Then cast the ray.
-        let hit = context.cast_ray(
-            transform.translation,
-            Vect::NEG_Y,
-            0.1f32.into(),
-            true,
-            QueryFilter::only_kinematic(),
-        );
-
-        if hit.is_some() {
+    for (entity, output) in &mut query {
+        if output.map(|o| o.grounded).unwrap_or(false) {
             commands.entity(entity).insert(OnGround);
         } else {
             commands.entity(entity).remove::<OnGround>();
@@ -187,30 +165,46 @@ fn update_grounded(mut commands: Commands,
 fn move_player(
     time: Res<Time>,
     mut movement_event_reader: EventReader<Movement>,
-    mut players: Query<(&MovementAcceleration, &mut KinematicCharacterController, Has<OnGround>, &Gravity)>,
+    mut players: Query<(&MovementVelocity, &mut KinematicCharacterController, Has<OnGround>, &Gravity)>,
+    mut jump_speed: Local<f32>,
 ) {
     let delta = time.delta_secs();
+    players.iter_mut().for_each(|(acc, mut controller, on_ground, gravity)| {
 
-    for x in movement_event_reader.read() {
-        players.iter_mut().for_each(|(acc, mut controller, on_ground, gravity)| {
+        let y = if on_ground {
+                0.0
+            } else {
+                *jump_speed += gravity.0 * delta;
+                *jump_speed * delta
+            };
+
+            let mut moving_vector = Vec3::ZERO;
+            moving_vector.y = y;
+
+        for x in movement_event_reader.read() {
             match x {
                 Movement::Move(dir) => {
-                    let y = if on_ground { 0.0 } else { gravity.0.y * delta };
-                    controller.translation = Some(
-                        Vect::new(dir.x * delta, y, dir.x * delta)
-                    )
+                    moving_vector.x = dir.x * delta * acc.ground;
+                    moving_vector.z = -dir.y * delta * acc.ground;
                 }
                 Movement::Jump => {
                     if on_ground {
                         // vel.linvel.y = acc.jump
+                        moving_vector.y = acc.jump * delta;
+                        *jump_speed = acc.jump;
                     }
                 }
             }
-        })
-    }
+
+            info!("moving:{}", moving_vector);
+            info!("event:{:?}", x);
+        }
+
+        controller.translation = Some(moving_vector);
+    })
 }
 
-fn apply_damping(mut query: Query<(&MovementAcceleration, &mut Velocity)>) {
+fn apply_damping(mut query: Query<(&MovementVelocity, &mut Velocity)>) {
     query.iter_mut().for_each(|(acc, mut vel)| {
         // vel.z *= acc.damping;
         // vel.x *= acc.damping;
@@ -218,7 +212,7 @@ fn apply_damping(mut query: Query<(&MovementAcceleration, &mut Velocity)>) {
     })
 }
 
-// fn apply_gravity(time: Res<Time>, mut controllers: Query<(&Gravity, &mut KinematicCharacterController)>) {
+// fn apply_gravity(time: Res<Time>, mut controllers: Query<(&Gravity, &mut KinematicCharacterController, Has<OnGround>)>) {
 //     // Precision is adjusted so that the example works with
 //     // both the `f32` and `f64` features. Otherwise you don't need this.
 //     let delta_time = time.delta_secs();
