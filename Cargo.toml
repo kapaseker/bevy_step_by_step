@@ -45,3 +45,9 @@ doc-scrape-examples = true
 name = "physics_on_ground"
 path = "examples/physics/on_ground.rs"
 doc-scrape-examples = true
+
+
+[[example]]
+name = "input_simple"
+path = "examples/input/simple.rs"
+doc-scrape-examples = true
