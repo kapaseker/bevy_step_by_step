@@ -51,3 +51,8 @@ doc-scrape-examples = true
 name = "input_simple"
 path = "examples/input/simple.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "event_simple"
+path = "examples/event/simple.rs"
+doc-scrape-examples = true
