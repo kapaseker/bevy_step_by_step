@@ -46,7 +46,6 @@ name = "physics_on_ground"
 path = "examples/physics/on_ground.rs"
 doc-scrape-examples = true
 
-
 [[example]]
 name = "input_simple"
 path = "examples/input/simple.rs"
@@ -60,4 +59,9 @@ doc-scrape-examples = true
 [[example]]
 name = "2d_sprite"
 path = "examples/2d/sprite.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "time"
+path = "examples/time/time.rs"
 doc-scrape-examples = true
