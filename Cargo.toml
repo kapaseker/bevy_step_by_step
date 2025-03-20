@@ -27,6 +27,11 @@ path = "examples/ecs/query.rs"
 doc-scrape-examples = true
 
 [[example]]
+name = "ecs_plugin"
+path = "examples/ecs/plugin.rs"
+doc-scrape-examples = true
+
+[[example]]
 name = "window_window"
 path = "examples/window/window.rs"
 doc-scrape-examples = true
